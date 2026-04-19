@@ -1,6 +1,6 @@
 # 🌿 MULTI WEED DETECTION
 
-AI-Powered Detection System for Paddy, Banana, and Environmental Entities. Designed primarily as a final year college project to analyze inputs around the queen bee nest.
+AI-Powered Detection System for Banana Weed, Paddy Weed, and Sugarcane Weed. Designed primarily as a final year college project to analyze and monitor agricultural environments.
 
 ## ✨ Features
 - **Premium User Interface:** Uses custom CSS styling with a beautiful dark mode "Agritech / Honeycomb" design theme to elevate the Streamlit baseline.

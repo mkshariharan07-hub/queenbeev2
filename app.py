@@ -203,7 +203,7 @@ confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.1, 1.0, 0.50,
 st.sidebar.markdown("---")
 st.sidebar.info("""
 **About the System**  
-This diagnostic tool utilizes deep learning (YOLOv8 architecture) to accurately identify **Banana Weed**, **Paddy Weed**, and **Sugarcane Weed** within the Queen Bee Nest ecosystem.
+This diagnostic tool utilizes deep learning (YOLOv8 architecture) to accurately identify **Banana Weed**, **Paddy Weed**, and **Sugarcane Weed** within agricultural environments.
 """)
 
 
