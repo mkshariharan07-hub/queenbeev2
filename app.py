@@ -13,7 +13,7 @@ except ImportError:
 # PAGE CONFIGURATION
 # ==========================================
 st.set_page_config(
-    page_title="Queen Bee Analytics | AI Vision",
+    page_title="MULTI WEED DETECTION",
     page_icon="🐝",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -161,7 +161,7 @@ st.markdown("""
 # ==========================================
 # APP HEADER
 # ==========================================
-st.markdown('<h1 class="main-title">🐝 Queen Bee Analytics</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-title">🌿 MULTI WEED DETECTION</h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">AI-Powered Detection System for Banana Weed, Paddy Weed, and Sugarcane Weed</p>', unsafe_allow_html=True)
 
 # ==========================================

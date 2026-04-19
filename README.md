@@ -1,4 +1,4 @@
-# 🐝 Queen Bee Nest Analytics
+# 🌿 MULTI WEED DETECTION
 
 AI-Powered Detection System for Paddy, Banana, and Environmental Entities. Designed primarily as a final year college project to analyze inputs around the queen bee nest.
 
