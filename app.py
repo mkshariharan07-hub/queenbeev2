@@ -213,11 +213,21 @@ This diagnostic tool utilizes deep learning (YOLOv8 architecture) to accurately 
 
 # File Upload Section
 st.markdown("### 📥 Input Telemetry")
-uploaded_file = st.file_uploader("Upload environmental capture (JPG, JPEG, PNG)...", type=['jpg', 'jpeg', 'png'])
+input_source = st.radio("Select telemetry source:", ("File Upload", "Live Camera"), horizontal=True)
 
-if uploaded_file is not None:
-    # Read Image
-    image = Image.open(uploaded_file).convert("RGB")
+image = None
+
+if input_source == "File Upload":
+    uploaded_file = st.file_uploader("Upload environmental capture (JPG, JPEG, PNG)...", type=['jpg', 'jpeg', 'png'])
+    if uploaded_file is not None:
+        image = Image.open(uploaded_file).convert("RGB")
+elif input_source == "Live Camera":
+    st.info("Mobile users: You may switch between front/back cameras using your device/browser's camera settings prompt.")
+    camera_capture = st.camera_input("Take a photo of the environment")
+    if camera_capture is not None:
+        image = Image.open(camera_capture).convert("RGB")
+
+if image is not None:
     
     # Layout Strategy
     col1, col2 = st.columns(2)
@@ -256,12 +266,7 @@ if uploaded_file is not None:
                 for box in boxes:
                     x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                     
-                    # Calculate center and radius for drawing circle
-                    center_x = int((x1 + x2) / 2)
-                    center_y = int((y1 + y2) / 2)
-                    width = x2 - x1
-                    height = y2 - y1
-                    radius = int(max(width, height) / 2)
+                    x1_i, y1_i, x2_i, y2_i = int(x1), int(y1), int(x2), int(y2)
                     
                     cls_id = int(box.cls[0].item())
                     conf = box.conf[0].item()
@@ -278,8 +283,8 @@ if uploaded_file is not None:
                         color = (255, 150, 50) # Blueish in BGR
                         display_name = "Sugarcane Weed"
                         
-                    # Draw Circle
-                    cv2.circle(img_cv, (center_x, center_y), radius, color, 4)
+                    # Draw Rectangle
+                    cv2.rectangle(img_cv, (x1_i, y1_i), (x2_i, y2_i), color, 4)
                     
                     # Draw Label
                     text_label = f"{display_name} {conf:.2f}"
@@ -288,16 +293,16 @@ if uploaded_file is not None:
                     thickness = 2
                     (text_width, text_height), baseline = cv2.getTextSize(text_label, font, font_scale, thickness)
                     
-                    label_bg_y1 = center_y - radius - text_height - 10
-                    label_bg_y2 = center_y - radius
+                    label_bg_y1 = y1_i - text_height - 10
+                    label_bg_y2 = y1_i
                     
                     # Prevent going out of top bounds
                     if label_bg_y1 < 0:
-                        label_bg_y1 = center_y + radius + 10
+                        label_bg_y1 = y1_i + 10
                         label_bg_y2 = label_bg_y1 + text_height + 10
                     
-                    cv2.rectangle(img_cv, (center_x - radius, label_bg_y1), (center_x - radius + text_width, label_bg_y2), color, -1)
-                    cv2.putText(img_cv, text_label, (center_x - radius, label_bg_y2 - 3), font, font_scale, (0, 0, 0), thickness)
+                    cv2.rectangle(img_cv, (x1_i, label_bg_y1), (x1_i + text_width, label_bg_y2), color, -1)
+                    cv2.putText(img_cv, text_label, (x1_i, label_bg_y2 - 3), font, font_scale, (0, 0, 0), thickness)
                     
                 output_image = Image.fromarray(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
                 
