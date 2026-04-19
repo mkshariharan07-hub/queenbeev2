@@ -3,7 +3,7 @@ from PIL import Image
 import numpy as np
 import os
 import io
-
+import cv2
 try:
     from ultralytics import YOLO
 except ImportError:
@@ -248,9 +248,58 @@ if uploaded_file is not None:
                 results = model.predict(source=image, conf=confidence_threshold)
                 res = results[0]  # First image results
                 
-                # Plot the bounding boxes
-                res_plotted = res.plot()
-                output_image = Image.fromarray(res_plotted[..., ::-1]) # Convert BGR to RGB
+                # Draw circular bounding areas instead of boxes
+                img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+                names = model.names
+                boxes = res.boxes
+                
+                for box in boxes:
+                    x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                    
+                    # Calculate center and radius for drawing circle
+                    center_x = int((x1 + x2) / 2)
+                    center_y = int((y1 + y2) / 2)
+                    width = x2 - x1
+                    height = y2 - y1
+                    radius = int(max(width, height) / 2)
+                    
+                    cls_id = int(box.cls[0].item())
+                    conf = box.conf[0].item()
+                    label = names[cls_id]
+                    
+                    # Color Mapping
+                    if 'banana' in label.lower():
+                        color = (0, 215, 255) # Amber/Yellow in BGR
+                        display_name = "Banana Weed"
+                    elif 'paddy' in label.lower():
+                        color = (50, 255, 50) # Green in BGR
+                        display_name = "Paddy Weed"
+                    else:
+                        color = (255, 150, 50) # Blueish in BGR
+                        display_name = "Sugarcane Weed"
+                        
+                    # Draw Circle
+                    cv2.circle(img_cv, (center_x, center_y), radius, color, 4)
+                    
+                    # Draw Label
+                    text_label = f"{display_name} {conf:.2f}"
+                    font = cv2.FONT_HERSHEY_SIMPLEX
+                    font_scale = 0.6
+                    thickness = 2
+                    (text_width, text_height), baseline = cv2.getTextSize(text_label, font, font_scale, thickness)
+                    
+                    label_bg_y1 = center_y - radius - text_height - 10
+                    label_bg_y2 = center_y - radius
+                    
+                    # Prevent going out of top bounds
+                    if label_bg_y1 < 0:
+                        label_bg_y1 = center_y + radius + 10
+                        label_bg_y2 = label_bg_y1 + text_height + 10
+                    
+                    cv2.rectangle(img_cv, (center_x - radius, label_bg_y1), (center_x - radius + text_width, label_bg_y2), color, -1)
+                    cv2.putText(img_cv, text_label, (center_x - radius, label_bg_y2 - 3), font, font_scale, (0, 0, 0), thickness)
+                    
+                output_image = Image.fromarray(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
                 
             with col2:
                 st.markdown("""
