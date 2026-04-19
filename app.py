@@ -4,6 +4,9 @@ import numpy as np
 import os
 import io
 import cv2
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 try:
     from ultralytics import YOLO
 except ImportError:
@@ -155,27 +158,29 @@ st.markdown("""
     hr {
         border-color: rgba(255, 255, 255, 0.1);
     }
+    
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
 # APP HEADER
 # ==========================================
-st.markdown('<h1 class="main-title">🌿 MULTI WEED DETECTION</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">AI-Powered Detection System for Banana Weed, Paddy Weed, and Sugarcane Weed</p>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-title">🐝 Queen Bee Drone Analytics</h1>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Autonomous 3D Weed Detection & Eradication System</p>', unsafe_allow_html=True)
 
 # ==========================================
-# SIDEBAR CONFIGURATION
+# DRONE CONFIGURATION (SIDEBAR)
 # ==========================================
 st.sidebar.markdown("""
 <div style="text-align: center; margin-bottom: 20px;">
-    <h2>⚙️ System Config</h2>
+    <h2>🚁 Drone Fleet Parameters</h2>
     <hr style="border-color: #333;">
 </div>
 """, unsafe_allow_html=True)
 
-st.sidebar.markdown("**Diagnostic Engine**")
-# Ensure the model exists
 model_path = os.path.join(os.getcwd(), 'best.pt')
 
 @st.cache_resource
@@ -184,26 +189,19 @@ def load_yolo_model(path):
         try:
             return YOLO(path)
         except Exception as e:
-            st.sidebar.error(f"Failed to load model: {e}")
             return None
     return None
 
 model = load_yolo_model(model_path)
 
-if model:
-    st.sidebar.success("✅ Model Core: ONLINE")
-else:
-    st.sidebar.error("❌ Model Core: OFFLINE (`best.pt` not found)")
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Detection Parameters**")
-confidence_threshold = st.sidebar.slider("Confidence Threshold", 0.1, 1.0, 0.50, 0.05, 
-                                        help="Higher values reduce false positives.")
+st.sidebar.markdown("**Sensor Sensitivity**")
+confidence_threshold = st.sidebar.slider("AI Match Threshold", 0.1, 1.0, 0.50, 0.05, 
+                                        help="Higher values reduce false positives for drone targeting.")
 
 st.sidebar.markdown("---")
 st.sidebar.info("""
-**About the System**  
-This diagnostic tool utilizes deep learning (YOLOv8 architecture) to accurately identify **Banana Weed**, **Paddy Weed**, and **Sugarcane Weed** within agricultural environments.
+**Autonomous Mission Protocols**  
+Queen Bee integrates advanced YOLOv8 telemetry with 3D spatial mapping to coordinate drone strikes against **Banana Weed**, **Paddy Weed**, and **Sugarcane Weed**.
 """)
 
 
@@ -315,7 +313,7 @@ if image is not None:
                 st.image(output_image, use_container_width=True)
                 
             st.markdown("---")
-            st.markdown("### 📊 Inference Analytics")
+            st.markdown("### 📊 Drone Mission Telemetry")
             
             # Map detections
             names = model.names
@@ -357,19 +355,84 @@ if image is not None:
                 
             # Detailed Breakdown List
             if len(detected_names) > 0:
-                st.markdown("#### Entity Manifest:")
-                manifest_html = "<div>"
-                for entity in detected_names:
-                    if 'banana' in entity:
-                        manifest_html += f"<span class='tag-banana'>🍌 Banana Weed</span>"
-                    elif 'paddy' in entity:
-                        manifest_html += f"<span class='tag-paddy'>🌾 Paddy Weed</span>"
+                df_data = []
+                for box in res.boxes:
+                    x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                    cx = (x1 + x2) / 2
+                    cy = (y1 + y2) / 2
+                    w = x2 - x1
+                    h = y2 - y1
+                    area = w * h
+                    cls_id = int(box.cls[0].item())
+                    conf = box.conf[0].item()
+                    label = names[cls_id]
+                    
+                    if 'banana' in label.lower():
+                        display_name = "Banana Weed"
+                        color_code = "#FFC107"
+                    elif 'paddy' in label.lower():
+                        display_name = "Paddy Weed"
+                        color_code = "#22C55E"
                     else:
-                        manifest_html += f"<span class='tag-other'>🌱 Sugarcane Weed</span>"
-                manifest_html += "</div>"
-                st.markdown(manifest_html, unsafe_allow_html=True)
+                        display_name = "Sugarcane Weed"
+                        color_code = "#00D7FF"
+                        
+                    df_data.append({
+                        "Threat Type": display_name,
+                        "AI Confidence": float(conf),
+                        "Field_X": float(cx),
+                        "Field_Y": float(image.height - cy),
+                        "Areal Coverage": float(area)
+                    })
+                    
+                df = pd.DataFrame(df_data)
+                
+                st.markdown("### 🗺️ 3D Spatial Drone Mapping")
+                st.markdown("<p style='color: var(--text-muted); margin-top: -10px;'>3D visualization of threat topography and sensor confidence gradients.</p>", unsafe_allow_html=True)
+                
+                fig = px.scatter_3d(df, x='Field_X', y='Field_Y', z='AI Confidence',
+                                    color='Threat Type',
+                                    size='Areal Coverage',
+                                    hover_data=['Threat Type', 'AI Confidence'],
+                                    opacity=0.8,
+                                    color_discrete_map={"Banana Weed": "#FFC107", "Paddy Weed": "#22C55E", "Sugarcane Weed": "#00D7FF"})
+                
+                fig.update_layout(
+                    margin=dict(l=0, r=0, b=0, t=0),
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color='#E2E8F0'),
+                    scene=dict(
+                        xaxis=dict(title='Latitude X (px)', gridcolor='#333', backgroundcolor='rgba(0,0,0,0)'),
+                        yaxis=dict(title='Longitude Y (px)', gridcolor='#333', backgroundcolor='rgba(0,0,0,0)'),
+                        zaxis=dict(title='Identification Confidence', gridcolor='#333', backgroundcolor='rgba(10,10,10,1)')
+                    ),
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="right",
+                        x=1
+                    )
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+                
+                st.markdown("### 📋 Mission Output Report")
+                st.markdown("<p style='color: var(--text-muted); margin-top: -10px;'>Extracted intelligence data grid suitable for autonomous eradicator drone upload.</p>", unsafe_allow_html=True)
+                st.dataframe(df.style.background_gradient(cmap='viridis', subset=['AI Confidence']), use_container_width=True)
+                
+                col_btn, _ = st.columns([1, 1])
+                with col_btn:
+                    csv = df.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="⬇️ Export Targeting Matrix (CSV)",
+                        data=csv,
+                        file_name='queen_bee_targeting_matrix.csv',
+                        mime='text/csv',
+                    )
             else:
-                st.info("No entities were identified above the confidence threshold.")
+                st.info("No threats recognized within sensor precision envelope.")
                 
 else:
     # Empty State Display
