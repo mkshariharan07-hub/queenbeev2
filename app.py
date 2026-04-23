@@ -2,7 +2,6 @@ import streamlit as st
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 import os
-import cv2
 import pandas as pd
 import plotly.express as px
 
