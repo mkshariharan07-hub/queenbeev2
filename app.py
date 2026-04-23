@@ -64,7 +64,7 @@ uploaded_file = st.file_uploader("Upload an image for weed detection", type=["jp
 image = None
 if uploaded_file:
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Uploaded Image", use_container_width=True)
+    st.image(image, caption="Uploaded Image", use_column_width=True)
 
 # ==========================================
 # PROCESS
@@ -107,7 +107,7 @@ if image is not None and st.button("🚀 Run Detection"):
     # OUTPUT
     # ==========================================
     st.subheader("📊 Detection Output")
-    st.image(img_draw, use_container_width=True)
+    st.image(img_draw, use_column_width=True)
 
     if detected:
         df = pd.DataFrame(detected)
