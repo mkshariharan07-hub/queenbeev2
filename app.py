@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 import os
 import cv2
@@ -56,11 +56,10 @@ else:
 confidence = st.sidebar.slider("Confidence Threshold", 0.1, 1.0, 0.5)
 
 # ==========================================
-# INPUT
+# IMAGE UPLOAD ONLY
 # ==========================================
 st.subheader("📥 Upload Image")
-
-uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Upload an image for weed detection", type=["jpg", "jpeg", "png"])
 
 image = None
 if uploaded_file:
@@ -72,7 +71,7 @@ if uploaded_file:
 # ==========================================
 if image is not None and st.button("🚀 Run Detection"):
 
-    with st.spinner("Running YOLO..."):
+    with st.spinner("Running YOLO detection..."):
         try:
             results = model.predict(source=image, conf=confidence)
             res = results[0]
@@ -81,47 +80,34 @@ if image is not None and st.button("🚀 Run Detection"):
             st.exception(e)
             st.stop()
 
-    # Convert image
-    img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-
+    # Draw boxes using PIL (no cv2 dependency for rendering)
+    img_draw = image.copy()
+    draw = ImageDraw.Draw(img_draw)
     names = model.names
-
     detected = []
 
     for box in res.boxes:
         x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
         cls_id = int(box.cls[0].item())
         conf_score = float(box.conf[0].item())
-
         label = names[cls_id]
 
-        # Draw box
-        cv2.rectangle(img_cv, (int(x1), int(y1)), (int(x2), int(y2)), (0,255,0), 2)
-
-        cv2.putText(
-            img_cv,
-            f"{label} {conf_score:.2f}",
-            (int(x1), int(y1)-10),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.6,
-            (0,255,0),
-            2
-        )
+        # Draw bounding box
+        draw.rectangle([int(x1), int(y1), int(x2), int(y2)], outline=(0, 255, 0), width=3)
+        draw.text((int(x1), int(y1) - 15), f"{label} {conf_score:.2f}", fill=(0, 255, 0))
 
         detected.append({
             "Label": label,
-            "Confidence": conf_score,
-            "X": float((x1+x2)/2),
-            "Y": float((y1+y2)/2)
+            "Confidence": round(conf_score, 3),
+            "X": float((x1 + x2) / 2),
+            "Y": float((y1 + y2) / 2)
         })
-
-    output_img = Image.fromarray(cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB))
 
     # ==========================================
     # OUTPUT
     # ==========================================
     st.subheader("📊 Detection Output")
-    st.image(output_img, use_container_width=True)
+    st.image(img_draw, use_container_width=True)
 
     if detected:
         df = pd.DataFrame(detected)
@@ -135,7 +121,8 @@ if image is not None and st.button("🚀 Run Detection"):
             x="X",
             y="Y",
             size="Confidence",
-            color="Label"
+            color="Label",
+            title="Detected Weed Positions"
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -147,4 +134,4 @@ if image is not None and st.button("🚀 Run Detection"):
             "text/csv"
         )
     else:
-        st.info("No objects detected.")
+        st.info("No weeds detected in the uploaded image.")
