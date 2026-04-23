@@ -8,8 +8,8 @@ import plotly.express as px
 # Safe import for YOLO
 try:
     from ultralytics import YOLO
-except ImportError:
-    st.error("Ultralytics not installed. Please check requirements.txt")
+except Exception as e:
+    st.error(f"❌ Failed to import Ultralytics: {e}")
     st.stop()
 
 # ==========================================
