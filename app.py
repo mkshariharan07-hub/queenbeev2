@@ -3,7 +3,12 @@ from PIL import Image
 import numpy as np
 import os
 import io
-import cv2
+try:
+    import cv2
+except ImportError:
+    import subprocess, sys
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "opencv-python-headless==4.9.0.80"])
+    import cv2
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -155,6 +160,23 @@ st.markdown("""
     .tag-banana { background: rgba(234, 179, 8, 0.15); color: #FACC15; padding: 5px 10px; border-radius: 6px; border: 1px solid #EAB308; display: inline-block; margin: 4px; }
     .tag-other { background: rgba(148, 163, 184, 0.15); color: #CBD5E1; padding: 5px 10px; border-radius: 6px; border: 1px solid #94A3B8; display: inline-block; margin: 4px; }
     
+    .error-card {
+        background: rgba(255, 69, 0, 0.15);
+        border-left: 4px solid #ff4500;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+        color: #ffddd2;
+    }
+    .placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 300px;
+        color: var(--text-muted);
+    }
+    
     hr {
         border-color: rgba(255, 255, 255, 0.1);
     }
@@ -168,8 +190,10 @@ st.markdown("""
 # ==========================================
 # APP HEADER
 # ==========================================
-st.markdown('<h1 class="main-title">🐝 Queen Bee Drone Analytics</h1>', unsafe_allow_html=True)
-st.markdown('<p class="sub-title">Autonomous 3D Weed Detection & Eradication System</p>', unsafe_allow_html=True)
+st.markdown('''
+<h1 class="main-title">🐝 Queen Bee Drone Analytics</h1>
+<p class="sub-title">Autonomous 3D Weed Detection &amp; Eradication System</p>
+''', unsafe_allow_html=True)
 
 # ==========================================
 # DRONE CONFIGURATION (SIDEBAR)
@@ -192,7 +216,14 @@ def load_yolo_model(path):
             return None
     return None
 
-model = load_yolo_model(model_path)
+# Load YOLO model with caching and status feedback
+with st.spinner('Loading YOLO model...'):
+    model = load_yolo_model(model_path)
+if model:
+    st.success('YOLO model loaded successfully 🎉')
+else:
+    st.error('⚠️ YOLO model could not be loaded. Please ensure `best.pt` is present in the app directory.')
+    st.stop()
 
 st.sidebar.markdown("**Sensor Sensitivity**")
 confidence_threshold = st.sidebar.slider("AI Match Threshold", 0.1, 1.0, 0.50, 0.05, 
@@ -252,9 +283,14 @@ if image is not None:
             st.error("Cannot proceed: YOLO Model `best.pt` is missing from the directory.")
         else:
             with st.spinner("Initializing Deep Neural Network..."):
-                # Run YOLO Inference
-                results = model.predict(source=image, conf=confidence_threshold)
-                res = results[0]  # First image results
+                try:
+                    # Run YOLO Inference
+                    results = model.predict(source=image, conf=confidence_threshold)
+                    res = results[0]  # First image results
+                except Exception as e:
+                    st.exception(e)
+                    st.error('Failed to run YOLO inference. Please check the uploaded image and model.')
+                    st.stop()
                 
                 # Draw circular bounding areas instead of boxes
                 img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
@@ -435,10 +471,14 @@ if image is not None:
                 st.info("No threats recognized within sensor precision envelope.")
                 
 else:
-    # Empty State Display
-    st.markdown("""
-    <div style="height: 300px; display: flex; align-items: center; justify-content: center; border: 2px dashed rgba(255, 255, 255, 0.1); border-radius: 12px; margin-top: 2rem;">
-        <p style="color: #666; font-size: 1.2rem;">Awaiting telemetric data... Please upload an image to begin.</p>
-    </div>
-    """, unsafe_allow_html=True)
-
+    # Friendly placeholder when no image is uploaded yet
+    st.markdown('''
+        <div class="placeholder">
+            <svg width="120" height="120" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="var(--text-muted)"/>
+                <path d="M13 7h-2v6h6v-2h-4z" fill="var(--accent)"/>
+            </svg>
+            <p>Awaiting image upload…</p>
+        </div>
+    ''', unsafe_allow_html=True)
+    st.info('Please upload an image to begin analysis.')
