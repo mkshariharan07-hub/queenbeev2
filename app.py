@@ -24,27 +24,28 @@ st.set_page_config(
 # ==========================================
 # HEADER
 # ==========================================
-st.title("🐝 Queen Bee Drone Analytics")
+st.title("🐝 Weed Deduction System")
 st.caption("Autonomous Weed Detection System")
 
 # ==========================================
 # LOAD MODEL
 # ==========================================
-model_path = "best.pt"
+model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "best.pt")
 
 @st.cache_resource
 def load_model():
     if not os.path.exists(model_path):
-        return None
+        return None, f"File not found at: {model_path}"
     try:
-        return YOLO(model_path)
-    except Exception:
-        return None
+        m = YOLO(model_path)
+        return m, None
+    except Exception as e:
+        return None, str(e)
 
-model = load_model()
+model, model_error = load_model()
 
 if model is None:
-    st.error("❌ Model file 'best.pt' not found or failed to load")
+    st.error(f"❌ Model failed to load: {model_error}")
     st.stop()
 else:
     st.success("✅ YOLO Model Loaded")
